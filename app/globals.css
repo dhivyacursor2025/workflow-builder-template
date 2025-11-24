@@ -214,7 +214,7 @@
 /* Increase hit area on mobile without changing visual size */
 @media (max-width: 768px) {
   .react-flow__handle::after {
-    content: '' !important;
+    content: "" !important;
     position: absolute !important;
     top: 50% !important;
     left: 50% !important;

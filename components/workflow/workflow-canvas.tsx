@@ -428,11 +428,7 @@ export function WorkflowCanvas(_props: WorkflowCanvasProps) {
           <Controls />
         </Panel>
         {showMinimap && (
-          <MiniMap
-            bgColor="var(--sidebar)"
-            className="hidden md:flex"
-            nodeStrokeColor="var(--border)"
-          />
+          <MiniMap bgColor="var(--sidebar)" nodeStrokeColor="var(--border)" />
         )}
       </Canvas>
     </div>
