@@ -13,12 +13,12 @@ Return a JSON object with this structure:
   "nodes": [
     {
       "id": "unique-id",
-      "type": "trigger|action|condition|transform",
+      "type": "trigger|action",
       "position": { "x": number, "y": number },
       "data": {
         "label": "Node Label",
         "description": "Node description",
-        "type": "trigger|action|condition|transform",
+        "type": "trigger|action",
         "config": { /* type-specific config */ },
         "status": "idle"
       }
@@ -67,15 +67,34 @@ ACTION NODES:
     aiSchema: "[{"name":"message","type":"string","required":true},{"name":"subject","type":"string","required":true}]"
   }
 - Generate Image: { actionType: "Generate Image", imageModel: "openai/dall-e-3", imagePrompt: "A beautiful landscape" }
+- Condition: { 
+    actionType: "Condition",
+    condition: "{{@node-id:Label.field}} === 'value'"
+  }
 
-CONDITION NODES:
-- { condition: "status === 'active'" }
-
-TRANSFORM NODES:
-- { transformType: "Map Data" }
+IMPORTANT ABOUT CONDITIONS:
+- Condition is an ACTION type, NOT a separate node type
+- All condition nodes must have type: "action" with actionType: "Condition"
+- Each condition node can only check ONE condition
+- CRITICAL: If you need multiple branches (if/else if/else), create MULTIPLE condition nodes
+- Example: "if X then A, if Y then B" needs TWO separate condition nodes
+- Example: "if joke is good send slack, if joke is bad create ticket" needs TWO condition nodes:
+  1. First condition checks "joke is good" -> connects to slack
+  2. Second condition checks "joke is bad" -> connects to ticket
+- Conditions use JavaScript expressions with template variables
+- Condition expression examples:
+  - { actionType: "Condition", condition: "{{@node-1:Status Check.status}} === 'active'" }
+  - { actionType: "Condition", condition: "{{@node-2:Count Query.count}} > 10" }
+  - { actionType: "Condition", condition: "{{@trigger:Contact Form.priority}} === 'high'" }
+- Each condition node should have edges connecting it to the appropriate next steps
+- When user asks for "if/else" or conditional logic, create separate action nodes with actionType: "Condition" for each branch
 
 IMPORTANT:
 - CRITICAL: Every workflow must have EXACTLY ONE trigger node (Manual, Webhook, or Schedule)
+- CRITICAL: There are only TWO node types: "trigger" and "action"
+- Condition is an ACTION type (actionType: "Condition"), not a node type
+- CRITICAL: Each condition node can ONLY check ONE condition - if you need multiple branches, create MULTIPLE condition nodes
+- Example: "if good then A, else if bad then B" = TWO condition nodes (one for good, one for bad)
 - If modifying a workflow that already has a trigger, keep only one trigger
 - For Webhook triggers, ALWAYS include requestSchema (array of field definitions) and mockRequest (sample data object)
 - requestSchema should describe expected incoming data with name, type (string/number/boolean), and required fields
@@ -93,6 +112,8 @@ IMPORTANT:
 - For Send Email actions, include emailTo, emailSubject, and emailBody
 - For Send Slack Message actions, include slackChannel and slackMessage
 - Position nodes in a left-to-right flow with proper spacing (x: 100, 400, 700, etc., y: 200)
+- CONDITION NODES: Conditions are action nodes with actionType: "Condition". They evaluate a condition and can route to different nodes based on the result
+- When a user asks for conditional logic, branching, or if/else behavior, create SEPARATE action nodes with actionType: "Condition" for EACH branch
 - Return ONLY valid JSON, no markdown or explanations`;
 
 export async function POST(request: Request) {

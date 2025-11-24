@@ -4,7 +4,7 @@ import { useAtom, useAtomValue } from "jotai";
 import { ArrowUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AnimatedBorder } from "@/components/ui/animated-border";
+import { Shimmer } from "@/components/ai-elements/shimmer";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api-client";
 import {
@@ -23,12 +23,11 @@ type AIPromptProps = {
 
 export function AIPrompt({ workflowId, onWorkflowCreated }: AIPromptProps) {
   const [isGenerating, setIsGenerating] = useAtom(isGeneratingAtom);
-  const [showPrompt, setShowPrompt] = useState(true);
   const [prompt, setPrompt] = useState("");
-  const [isFocused, setIsFocused] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const nodes = useAtomValue(nodesAtom);
   const [edges, setEdges] = useAtom(edgesAtom);
   const [_nodes, setNodes] = useAtom(nodesAtom);
@@ -52,39 +51,20 @@ export function AIPrompt({ workflowId, onWorkflowCreated }: AIPromptProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      if (blurTimeoutRef.current) {
-        clearTimeout(blurTimeoutRef.current);
-      }
     };
   }, []);
 
-  const handleBlur = () => {
-    // Delay both focus and expansion state changes
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-    }
-    blurTimeoutRef.current = setTimeout(() => {
-      setIsFocused(false);
-      if (!prompt.trim()) {
-        setIsExpanded(false);
-      }
-    }, 150);
-  };
-
   const handleFocus = () => {
-    if (blurTimeoutRef.current) {
-      clearTimeout(blurTimeoutRef.current);
-    }
-    setIsFocused(true);
     setIsExpanded(true);
+    setIsFocused(true);
   };
 
-  // Update expanded state when prompt changes
-  useEffect(() => {
-    if (prompt.trim()) {
-      setIsExpanded(true);
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (!prompt.trim()) {
+      setIsExpanded(false);
     }
-  }, [prompt]);
+  };
 
   const handleGenerate = useCallback(
     async (e: React.FormEvent) => {
@@ -302,29 +282,47 @@ export function AIPrompt({ workflowId, onWorkflowCreated }: AIPromptProps) {
   return (
     <>
       {/* Always visible prompt input */}
-      <div className={`absolute bottom-4 left-1/2 z-10 -translate-x-1/2 transition-all duration-300 ${isExpanded ? "w-full max-w-2xl px-4" : "w-80 px-0"}`}>
+      <div 
+        ref={containerRef}
+        className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 px-4"
+        style={{
+          width: isExpanded ? "min(100%, 42rem)" : "20rem",
+          transition: "width 150ms ease-out",
+        }}
+      >
         <form
           className="relative flex items-center gap-2 rounded-lg border bg-background px-3 py-2 shadow-lg"
           onSubmit={handleGenerate}
         >
-          {isGenerating && <AnimatedBorder />}
-          <input
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-            disabled={isGenerating}
-            onBlur={handleBlur}
-            onChange={(e) => setPrompt(e.target.value)}
-            onFocus={handleFocus}
-            placeholder={
-              hasNodes
-                ? "Describe what you want to add or change..."
-                : "Describe your workflow (e.g., 'send a slack message every morning at 9am')..."
-            }
-            ref={inputRef}
-            type="text"
-            value={prompt}
-          />
+          {isGenerating && prompt ? (
+            <Shimmer className="flex-1 text-sm whitespace-pre-wrap" duration={2}>
+              {prompt}
+            </Shimmer>
+          ) : (
+            <textarea
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[200px] py-0"
+              disabled={isGenerating}
+              onBlur={handleBlur}
+              onChange={(e) => {
+                setPrompt(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }}
+              onFocus={handleFocus}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleGenerate(e as any);
+                }
+              }}
+              placeholder={isFocused ? "Describe your workflow with natural language..." : "Ask AI... (⌘+K)"}
+              ref={inputRef}
+              rows={1}
+              value={prompt}
+            />
+          )}
           <Button
-            className={!prompt.trim() || isGenerating ? "invisible" : ""}
+            className={`${!prompt.trim() || isGenerating ? "invisible" : ""} shrink-0`}
             disabled={!prompt.trim() || isGenerating}
             size="sm"
             type="submit"
