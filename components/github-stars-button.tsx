@@ -27,7 +27,9 @@ export function GitHubStarsButton({ initialStars }: GitHubStarsButtonProps) {
       >
         <GitHubIcon className="size-4.5" />
         {initialStars && (
-          <span className="text-sm">{formatAbbreviatedNumber(initialStars)}</span>
+          <span className="text-sm">
+            {formatAbbreviatedNumber(initialStars)}
+          </span>
         )}
       </a>
     </Button>
