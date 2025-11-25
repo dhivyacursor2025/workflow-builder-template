@@ -90,10 +90,7 @@ export async function databaseQueryStep(
 
   const validationError = validateInput(input);
   if (validationError) {
-    return {
-      status: "error",
-      error: validationError,
-    };
+    throw new Error(validationError);
   }
 
   const credentials = input.integrationId
@@ -103,11 +100,9 @@ export async function databaseQueryStep(
   const databaseUrl = credentials.DATABASE_URL;
 
   if (!databaseUrl) {
-    return {
-      status: "error",
-      error:
-        "DATABASE_URL is not configured. Please add it in Project Integrations.",
-    };
+    throw new Error(
+      "DATABASE_URL is not configured. Please add it in Project Integrations."
+    );
   }
 
   const queryString = (input.dbQuery || input.query) as string;
@@ -125,9 +120,6 @@ export async function databaseQueryStep(
     };
   } catch (error) {
     await cleanupClient(client);
-    return {
-      status: "error",
-      error: getErrorMessage(error),
-    };
+    throw new Error(getErrorMessage(error));
   }
 }
