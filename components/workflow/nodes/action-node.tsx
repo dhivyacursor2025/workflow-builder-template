@@ -142,7 +142,7 @@ const ModelBadge = ({ model }: { model: string }) => {
   }
 
   return (
-    <div className="rounded-full border border-muted-foreground/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+    <div className="rounded-full border border-muted-foreground/50 px-2 py-0.5 font-medium text-[10px] text-muted-foreground">
       {getModelDisplayName(model)}
     </div>
   );

@@ -447,7 +447,9 @@ function GenerateTextFields({
               Claude Sonnet 4.5
             </SelectItem>
             <SelectItem value="gpt-5">GPT-5</SelectItem>
-            <SelectItem value="openai/gpt-5.1-instant">GPT-5.1 Instant</SelectItem>
+            <SelectItem value="openai/gpt-5.1-instant">
+              GPT-5.1 Instant
+            </SelectItem>
             <SelectItem value="openai/gpt-5.1-codex">GPT-5.1 Codex</SelectItem>
             <SelectItem value="openai/gpt-5.1-codex-mini">
               GPT-5.1 Codex Mini
