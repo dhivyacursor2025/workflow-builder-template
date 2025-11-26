@@ -247,11 +247,13 @@ function _generateGenerateTextStepBody(
 ): string {
   imports.add("import { generateText, generateObject } from 'ai';");
   imports.add("import { z } from 'zod';");
-  const modelId = (config.aiModel as string) || "gpt-5";
-  const provider =
-    modelId.startsWith("gpt-") || modelId.startsWith("o1")
-      ? "openai"
-      : "anthropic";
+  const modelId = (config.aiModel as string) || "meta/llama-4-scout";
+  // If model already has a provider prefix (contains "/"), use it as-is
+  const model = modelId.includes("/")
+    ? modelId
+    : modelId.startsWith("gpt-") || modelId.startsWith("o1")
+      ? `openai/${modelId}`
+      : `anthropic/${modelId}`;
   const aiPrompt = (config.aiPrompt as string) || "";
   const convertedPrompt = convertTemplateToJS(aiPrompt);
 
@@ -279,7 +281,7 @@ function _generateGenerateTextStepBody(
       const zodSchema = z.object(schemaShape);
 
       const { object } = await generateObject({
-        model: '${provider}/${modelId}',
+        model: '${model}',
         prompt: finalPrompt,
         schema: zodSchema,
       });
@@ -291,7 +293,7 @@ function _generateGenerateTextStepBody(
   }
   
   const { text } = await generateText({
-    model: '${provider}/${modelId}',
+    model: '${model}',
     prompt: finalPrompt,
   });
   
@@ -493,13 +495,15 @@ export function generateWorkflowSDKCode(
 
   function buildAITextParams(config: Record<string, unknown>): string[] {
     imports.add("import { generateText } from 'ai';");
-    const modelId = (config.aiModel as string) || "gpt-4o-mini";
-    const provider =
-      modelId.startsWith("gpt-") || modelId.startsWith("o1-")
-        ? "openai"
-        : "anthropic";
+    const modelId = (config.aiModel as string) || "meta/llama-4-scout";
+    // If model already has a provider prefix (contains "/"), use it as-is
+    const model = modelId.includes("/")
+      ? modelId
+      : modelId.startsWith("gpt-") || modelId.startsWith("o1")
+        ? `openai/${modelId}`
+        : `anthropic/${modelId}`;
     return [
-      `model: "${provider}/${modelId}"`,
+      `model: "${model}"`,
       `prompt: \`${convertTemplateToJS((config.aiPrompt as string) || "")}\``,
       "apiKey: process.env.OPENAI_API_KEY!",
     ];
