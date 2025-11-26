@@ -444,7 +444,7 @@ export function generateWorkflowCode(
     const imagePrompt =
       (node.data.config?.imagePrompt as string) || "A beautiful landscape";
     const imageModel =
-      (node.data.config?.imageModel as string) || "bfl/flux-2-pro";
+      (node.data.config?.imageModel as string) || "google/imagen-4.0-generate";
 
     return [
       `${indent}// Generate image using AI`,
@@ -641,7 +641,10 @@ export function generateWorkflowCode(
       lines.push(
         ...wrapActionCall(generateFindIssuesActionCode(indent, varName))
       );
-    } else if (actionType === "Firecrawl Scrape" || actionType === "Firecrawl Search") {
+    } else if (
+      actionType === "Firecrawl Scrape" ||
+      actionType === "Firecrawl Search"
+    ) {
       lines.push(
         ...wrapActionCall(generateFirecrawlActionCode(node, indent, varName))
       );

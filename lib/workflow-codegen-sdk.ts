@@ -314,7 +314,7 @@ function _generateGenerateImageStepBody(
   const finalPrompt = (input.imagePrompt as string) || imagePrompt;
   
   const response = await openai.images.generate({
-    model: '${config.imageModel || "bfl/flux-2-pro"}',
+    model: '${config.imageModel || "google/imagen-4.0-generate"}',
     prompt: finalPrompt,
     n: 1,
     response_format: 'b64_json',
@@ -509,7 +509,8 @@ export function generateWorkflowSDKCode(
     imports.add(
       "import { experimental_generateImage as generateImage } from 'ai';"
     );
-    const imageModel = (config.imageModel as string) || "bfl/flux-2-pro";
+    const imageModel =
+      (config.imageModel as string) || "google/imagen-4.0-generate";
     return [
       `model: "${imageModel}"`,
       `prompt: \`${convertTemplateToJS((config.imagePrompt as string) || "")}\``,

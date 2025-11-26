@@ -183,7 +183,7 @@ Action types:
 - Database Query: {"actionType": "Database Query", "dbQuery": "SELECT * FROM table", "dbTable": "table"}
 - HTTP Request: {"actionType": "HTTP Request", "httpMethod": "POST", "endpoint": "https://api.example.com", "httpHeaders": "{}", "httpBody": "{}"}
 - Generate Text: {"actionType": "Generate Text", "aiModel": "gpt-5", "aiFormat": "text", "aiPrompt": "Your prompt here"}
-- Generate Image: {"actionType": "Generate Image", "imageModel": "bfl/flux-2-pro", "imagePrompt": "Image description"}
+- Generate Image: {"actionType": "Generate Image", "imageModel": "google/imagen-4.0-generate", "imagePrompt": "Image description"}
 - Firecrawl Scrape: {"actionType": "Firecrawl Scrape", "url": "https://example.com"}
 - Firecrawl Search: {"actionType": "Firecrawl Search", "query": "search query", "limit": 10}
 - Condition: {"actionType": "Condition", "condition": "{{@nodeId:Label.field}} === 'value'"}
