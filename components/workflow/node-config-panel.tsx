@@ -322,11 +322,17 @@ export const PanelInner = () => {
 
   const handleUpdateConfig = (key: string, value: string) => {
     if (selectedNode) {
-      const newConfig = { ...selectedNode.data.config, [key]: value };
+      let newConfig = { ...selectedNode.data.config, [key]: value };
+
+      // When action type changes, clear the integrationId since it may not be valid for the new action
+      if (key === "actionType" && selectedNode.data.config?.integrationId) {
+        newConfig = { ...newConfig, integrationId: undefined };
+      }
+
       updateNodeData({ id: selectedNode.id, data: { config: newConfig } });
 
-      // When action type is set, auto-select integration if only one exists
-      if (key === "actionType" && !selectedNode.data.config?.integrationId) {
+      // When action type changes, auto-select integration if only one exists
+      if (key === "actionType") {
         // Cancel any pending auto-select operation for this node
         const existingController =
           autoSelectAbortControllersRef.current[selectedNode.id];
