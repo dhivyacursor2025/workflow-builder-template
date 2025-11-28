@@ -118,8 +118,61 @@ function stripContext<T extends StepInput>(input: T): Omit<T, "_context"> {
 }
 
 /**
+ * Log workflow execution completion
+ * Call this from within a step context to update the overall workflow status
+ */
+export async function logWorkflowComplete(options: {
+  executionId: string;
+  status: "success" | "error";
+  output?: unknown;
+  error?: string;
+  startTime: number;
+}): Promise<void> {
+  try {
+    const redactedOutput = redactSensitiveData(options.output);
+
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflow-log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "complete",
+        data: {
+          executionId: options.executionId,
+          status: options.status,
+          output: redactedOutput,
+          error: options.error,
+          startTime: options.startTime,
+        },
+      }),
+    });
+  } catch (err) {
+    console.error("[stepHandler] Failed to log workflow completion:", err);
+  }
+}
+
+/**
+ * Extended context that includes workflow completion info
+ */
+export type StepContextWithWorkflow = StepContext & {
+  _workflowComplete?: {
+    status: "success" | "error";
+    output?: unknown;
+    error?: string;
+    startTime: number;
+  };
+};
+
+/**
+ * Extended input type for steps that may handle workflow completion
+ */
+export type StepInputWithWorkflow = {
+  _context?: StepContextWithWorkflow;
+};
+
+/**
  * Wrap step logic with logging
  * Call this from inside your step function (within "use step" context)
+ * If _context._workflowComplete is set, also logs workflow completion
  *
  * @example
  * export async function myStep(input: MyInput & StepInput) {
@@ -135,7 +188,7 @@ export async function withStepLogging<TInput extends StepInput, TOutput>(
   stepLogic: () => Promise<TOutput>
 ): Promise<TOutput> {
   // Extract context and log input without _context
-  const context = input._context;
+  const context = input._context as StepContextWithWorkflow | undefined;
   const loggedInput = stripContext(input);
   const logInfo = await logStepStart(context, loggedInput);
 
@@ -159,6 +212,14 @@ export async function withStepLogging<TInput extends StepInput, TOutput>(
       );
     } else {
       await logStepComplete(logInfo, "success", result);
+    }
+
+    // If this step should also log workflow completion, do it now
+    if (context?._workflowComplete && context.executionId) {
+      await logWorkflowComplete({
+        executionId: context.executionId,
+        ...context._workflowComplete,
+      });
     }
 
     return result;

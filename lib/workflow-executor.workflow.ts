@@ -4,8 +4,8 @@
  */
 
 import type { StepContext } from "./steps/step-handler";
+import { triggerStep } from "./steps/trigger";
 import { getErrorMessageAsync } from "./utils";
-import { redactSensitiveData } from "./utils/redact";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
 
 type ExecutionResult = {
@@ -372,85 +372,6 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     return node.data.type;
   }
 
-  // Helper to log trigger nodes (not using stepHandler since triggers aren't steps)
-  async function logTriggerStart(
-    node: WorkflowNode,
-    triggerData: unknown
-  ): Promise<{ logId: string; startTime: number }> {
-    if (!executionId) {
-      return { logId: "", startTime: Date.now() };
-    }
-
-    try {
-      const redactedInput = redactSensitiveData(triggerData);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/workflow-log`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "start",
-            data: {
-              executionId,
-              nodeId: node.id,
-              nodeName: getNodeName(node),
-              nodeType: node.data.type,
-              input: redactedInput,
-            },
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        return {
-          logId: result.logId || "",
-          startTime: result.startTime || Date.now(),
-        };
-      }
-      return { logId: "", startTime: Date.now() };
-    } catch (error) {
-      console.error("[Workflow Executor] Failed to log trigger start:", error);
-      return { logId: "", startTime: Date.now() };
-    }
-  }
-
-  // Helper to complete trigger logging
-  async function logTriggerComplete(options: {
-    logId: string;
-    startTime: number;
-    status: "success" | "error";
-    output?: unknown;
-    error?: string;
-  }): Promise<void> {
-    if (!options.logId) {
-      return;
-    }
-
-    try {
-      const redactedOutput = redactSensitiveData(options.output);
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflow-log`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "complete",
-          data: {
-            logId: options.logId,
-            startTime: options.startTime,
-            status: options.status,
-            output: redactedOutput,
-            error: options.error,
-          },
-        }),
-      });
-    } catch (error) {
-      console.error(
-        "[Workflow Executor] Failed to log trigger completion:",
-        error
-      );
-    }
-  }
-
   // Helper to execute a single node
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Node execution requires type checking and error handling
   async function executeNode(nodeId: string, visited: Set<string> = new Set()) {
@@ -523,20 +444,24 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           triggerData = { ...triggerData, ...triggerInput };
         }
 
-        // Log trigger execution (not via stepHandler since triggers aren't steps)
-        const logInfo = await logTriggerStart(node, triggerData);
-
-        result = {
-          success: true,
-          data: triggerData,
+        // Build context for logging
+        const triggerContext: StepContext = {
+          executionId,
+          nodeId: node.id,
+          nodeName: getNodeName(node),
+          nodeType: node.data.type,
         };
 
-        await logTriggerComplete({
-          logId: logInfo.logId,
-          startTime: logInfo.startTime,
-          status: "success",
-          output: result.data,
+        // Execute trigger step (handles logging internally)
+        const triggerResult = await triggerStep({
+          triggerData,
+          _context: triggerContext,
         });
+
+        result = {
+          success: triggerResult.success,
+          data: triggerResult.data,
+        };
       } else if (node.data.type === "action") {
         const config = node.data.config || {};
         const actionType = config.actionType as string | undefined;
@@ -712,22 +637,15 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     // Update execution record if we have an executionId
     if (executionId) {
       try {
-        const redactedOutput = redactSensitiveData(
-          Object.values(results).at(-1)?.data
-        );
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflow-log`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "complete",
-            data: {
-              executionId,
-              status: finalSuccess ? "success" : "error",
-              output: redactedOutput,
-              error: Object.values(results).find((r) => !r.success)?.error,
-              startTime: workflowStartTime,
-            },
-          }),
+        await triggerStep({
+          triggerData: {},
+          _workflowComplete: {
+            executionId,
+            status: finalSuccess ? "success" : "error",
+            output: Object.values(results).at(-1)?.data,
+            error: Object.values(results).find((r) => !r.success)?.error,
+            startTime: workflowStartTime,
+          },
         });
         console.log("[Workflow Executor] Updated execution record");
       } catch (error) {
@@ -754,18 +672,14 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     // Update execution record with error if we have an executionId
     if (executionId) {
       try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/workflow-log`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "complete",
-            data: {
-              executionId,
-              status: "error",
-              error: errorMessage,
-              startTime: Date.now(),
-            },
-          }),
+        await triggerStep({
+          triggerData: {},
+          _workflowComplete: {
+            executionId,
+            status: "error",
+            error: errorMessage,
+            startTime: Date.now(),
+          },
         });
       } catch (logError) {
         console.error("[Workflow Executor] Failed to log error:", logError);
