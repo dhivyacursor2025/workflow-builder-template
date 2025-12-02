@@ -85,6 +85,7 @@ Visit [http://localhost:3000](http://localhost:3000) to get started.
 - **GitHub**: Create Issue, List Issues, Get Issue, Update Issue
 - **Linear**: Create Ticket, Find Issues
 - **Resend**: Send Email
+- **Shopify**: Get Order, List Orders, Create Product, Update Inventory
 - **Slack**: Send Slack Message
 - **Superagent**: Guard, Redact
 - **v0**: Create Chat, Send Message
