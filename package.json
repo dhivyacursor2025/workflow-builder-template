@@ -19,6 +19,7 @@
     "create-plugin": "tsx scripts/create-plugin.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^1.0.0",
     "@ai-sdk/provider": "^2.0.0",
     "@linear/sdk": "^63.2.0",
     "@mendable/firecrawl-js": "^4.6.2",

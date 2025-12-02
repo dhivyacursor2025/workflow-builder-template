@@ -1,4 +1,5 @@
 import { streamText } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { generateAIActionPrompts } from "@/plugins";
@@ -277,6 +278,11 @@ export async function POST(request: Request) {
       );
     }
 
+    // Create OpenAI provider with the API key
+    const openai = createOpenAI({
+      apiKey,
+    });
+
     // Build the user prompt
     let userPrompt = prompt;
     if (existingWorkflow) {
@@ -325,7 +331,7 @@ Example: If user says "connect node A to node B", output:
     }
 
     const result = streamText({
-      model: "openai/gpt-5.1-instant",
+      model: openai("gpt-4o-mini"),
       system: getSystemPrompt(),
       prompt: userPrompt,
     });
